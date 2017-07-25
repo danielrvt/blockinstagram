@@ -26,6 +26,7 @@ class BlockInstagram extends Module
         Configuration::updateValue('BI_CACHE_DURATION', 'day') &&
         Configuration::updateValue('BI_IMAGE_FORMAT', 'standard_resolution') &&
         $this->registerHook('blockInstagram') &&
+        $this->registerHook('blockInstagramConf') &&
         $this->registerHook('displayHome');
     }
 
@@ -148,7 +149,26 @@ class BlockInstagram extends Module
 
         return $this->display(__FILE__, 'blockinstagram.tpl', $cacheId);
     }
-    
+
+
+    public function hookBlockInstagramConf($params)
+    {
+        $conf = Configuration::getMultiple(array('BI_USERNAME', 'BI_CACHE_DURATION'));
+
+        # Gestion du slug du cache
+        $cacheIdDate = $conf['BI_CACHE_DURATION'] == 'day' ? date('Ymd') : date('YmdH');
+        $cache_array = array($this->name, $conf['BI_USERNAME'], $cacheIdDate, (int)$this->context->language->id);
+        $cacheId = implode('|', $cache_array);
+
+        if (!$this->isCached('blockinstagram-conf.tpl', $cacheId)) {
+            $this->context->smarty->assign(array(
+                'instagram_pics' => $this->getPics(),
+                'instagram_user' => $this->getAccount($conf['BI_USERNAME'])
+            ));
+        }
+
+        return $this->display(__FILE__, 'blockinstagram-conf.tpl', $cacheId);
+    }
     
     # Use in *.tpl : {hook h='blockInstagram' mod='blockinstagram'}
     # Work only if not hook on displayHome
